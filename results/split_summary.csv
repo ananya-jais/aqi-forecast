@@ -1,0 +1,4 @@
+set,samples,alert_rate_%
+train (2015-2018),13041,33.1
+test (2019-Feb 2020),8374,23.2
+lockdown (25 Mar-30 Jun 2020),2369,1.4

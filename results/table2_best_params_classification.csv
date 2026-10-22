@@ -1,0 +1,8 @@
+Model,Selected
+Logistic regression,"{'C': 1, 'class_weight': None}"
+Gauss. Naive Bayes,{}
+Decision tree,"{'class_weight': 'balanced', 'max_depth': 4}"
+k-NN,{'n_neighbors': 31}
+Perceptron,{}
+SVM (RBF),"{'C': 1, 'class_weight': None}"
+MLP (64-32),{'alpha': 1}

@@ -1,0 +1,9 @@
+Model,Selected
+Linear reg. (OLS),{}
+Ridge reg.,{'alpha': 100}
+Lasso reg.,{'alpha': 1}
+Polynomial (deg 2) + Ridge,{'alpha': 100}
+Decision tree,"{'max_depth': 6, 'min_samples_leaf': 50}"
+k-NN regressor,"{'n_neighbors': 31, 'weights': 'distance'}"
+SVR (RBF),"{'C': 100, 'epsilon': 15}"
+MLP (64-32),{'alpha': 0.0001}

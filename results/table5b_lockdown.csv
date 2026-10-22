@@ -1,0 +1,3 @@
+Setting,MAE,RMSE,R2
+Lockdown: persistence,11.534,21.106,0.734
+Lockdown: SVR (RBF),16.908,25.181,0.621

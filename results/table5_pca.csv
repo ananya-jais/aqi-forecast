@@ -1,0 +1,5 @@
+Setting,MAE,RMSE,R2
+"OLS, all features",24.548,36.9,0.879
+"OLS, PCA 95%",26.422,40.067,0.857
+"k-NN (k=15), all features",28.461,40.776,0.852
+"k-NN (k=15), PCA 95%",29.094,41.698,0.845

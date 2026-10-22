@@ -1,0 +1,159 @@
+
+==============================================================================
+DATA SPLIT (chronological)
+==============================================================================
+                          set  samples  alert_rate_%
+            train (2015-2018)    13041          33.1
+         test (2019-Feb 2020)     8374          23.2
+lockdown (25 Mar-30 Jun 2020)     2369           1.4
+
+==============================================================================
+MISSING VALUES (%) - Xylene dropped
+==============================================================================
+    column  missing_percent
+    Xylene             61.3
+      PM10             37.7
+       NH3             35.0
+   Toluene             27.2
+   Benzene             19.0
+       AQI             15.9
+AQI_Bucket             15.9
+     PM2.5             15.6
+       NOx             14.2
+        O3             13.6
+       SO2             13.1
+       NO2             12.1
+        NO             12.1
+        CO              7.0
+      Date              0.0
+      City              0.0
+
+==============================================================================
+TABLE 2a: BEST HYPER-PARAMETERS (REGRESSION)
+==============================================================================
+                     Model                                   Selected
+         Linear reg. (OLS)                                         {}
+                Ridge reg.                             {'alpha': 100}
+                Lasso reg.                               {'alpha': 1}
+Polynomial (deg 2) + Ridge                             {'alpha': 100}
+             Decision tree   {'max_depth': 6, 'min_samples_leaf': 50}
+            k-NN regressor {'n_neighbors': 31, 'weights': 'distance'}
+                 SVR (RBF)                  {'C': 100, 'epsilon': 15}
+               MLP (64-32)                          {'alpha': 0.0001}
+
+==============================================================================
+TABLE 2b: BEST HYPER-PARAMETERS (CLASSIFICATION)
+==============================================================================
+              Model                                     Selected
+Logistic regression               {'C': 1, 'class_weight': None}
+ Gauss. Naive Bayes                                           {}
+      Decision tree {'class_weight': 'balanced', 'max_depth': 4}
+               k-NN                          {'n_neighbors': 31}
+         Perceptron                                           {}
+          SVM (RBF)               {'C': 1, 'class_weight': None}
+        MLP (64-32)                                 {'alpha': 1}
+
+==============================================================================
+TABLE 3: NEXT-DAY AQI REGRESSION (test set)
+==============================================================================
+                     Model    MAE   RMSE    R2  CV_RMSE
+      Persistence baseline 25.591 42.427 0.839      NaN
+         Linear reg. (OLS) 24.548 36.900 0.879   43.044
+                Ridge reg. 24.452 36.981 0.878   42.189
+                Lasso reg. 24.392 37.747 0.873   42.256
+Polynomial (deg 2) + Ridge 24.368 35.258 0.889   41.755
+             Decision tree 23.327 36.391 0.882   44.149
+            k-NN regressor 28.154 40.386 0.855   46.292
+                 SVR (RBF) 23.691 34.962 0.891   44.405
+               MLP (64-32) 26.076 38.459 0.868   43.507
+
+==============================================================================
+TABLE 4: HEALTH-ALERT CLASSIFICATION (test set)
+==============================================================================
+               Model   Acc  Prec  Recall    F1   AUC
+Persistence baseline 0.922 0.832   0.834 0.833   NaN
+ Logistic regression 0.938 0.873   0.860 0.866 0.981
+  Gauss. Naive Bayes 0.865 0.656   0.882 0.752 0.935
+       Decision tree 0.927 0.791   0.931 0.855 0.974
+                k-NN 0.924 0.857   0.807 0.831 0.970
+          Perceptron 0.921 0.855   0.794 0.823 0.966
+           SVM (RBF) 0.938 0.870   0.863 0.866 0.979
+         MLP (64-32) 0.937 0.865   0.865 0.865 0.981
+
+==============================================================================
+CONFUSION MATRIX (best F1 model)
+==============================================================================
+              Model   TN  FP  FN   TP
+Logistic regression 6187 243 273 1671
+
+==============================================================================
+TABLE 5: PCA vs ALL FEATURES
+==============================================================================
+                  Setting    MAE   RMSE    R2
+        OLS, all features 24.548 36.900 0.879
+             OLS, PCA 95% 26.422 40.067 0.857
+k-NN (k=15), all features 28.461 40.776 0.852
+     k-NN (k=15), PCA 95% 29.094 41.698 0.845
+
+==============================================================================
+PCA SUMMARY
+==============================================================================
+ n_numeric_features  components_for_90%  components_for_95%  first_component_%
+                 16                   9                  12               39.0
+
+==============================================================================
+TABLE 5b: COVID LOCKDOWN STRESS TEST
+==============================================================================
+              Setting    MAE   RMSE    R2
+Lockdown: persistence 11.534 21.106 0.734
+  Lockdown: SVR (RBF) 16.908 25.181 0.621
+
+==============================================================================
+TOP 8 LASSO COEFFICIENTS
+==============================================================================
+           feature      coef
+          num__AQI 46.745649
+        num__PM2.5 30.064252
+num__AQI_3day_mean 25.874071
+           num__CO 16.959186
+         num__PM10  6.765173
+          num__SO2  3.270954
+          num__NOx  1.657471
+           num__O3  1.185297
+
+==============================================================================
+TABLE A1: PER-CITY RMSE (model vs persistence)
+==============================================================================
+              City  n_train  n_test  Mean_AQI  RMSE_model  RMSE_persistence  worse_than_persistence
+         Bengaluru     1354     425        92        12.7              13.2                   False
+           Chennai     1325     425       100        28.5              33.2                   False
+            Jaipur      538     425       120        27.6              36.1                   False
+            Mumbai      222     425       116        21.3              23.0                   False
+           Lucknow     1332     425       208        33.6              49.1                   False
+           Kolkata      205     425       152        40.3              35.8                    True
+             Delhi     1446     425       238        38.1              51.3                   False
+         Hyderabad     1320     425        95        13.2              14.6                   False
+          Gurugram      856     423       198        41.4              53.7                   False
+          Amritsar      566     416       110        30.6              39.0                   False
+             Patna      872     415       220        39.9              43.8                   False
+Thiruvananthapuram      511     407        77        16.4              18.5                   False
+         Ahmedabad      780     402       403        70.6              90.5                   False
+     Visakhapatnam      625     382       122        23.8              32.3                   False
+          Guwahati        0     368       151        51.3              66.8                   False
+         Amaravati      313     363        95        20.5              23.8                   False
+      Brajrajnagar      264     352       149        32.7              41.2                   False
+        Jorapokhar      283     351       159        38.8              41.8                   False
+           Talcher      229     341       181        38.9              47.1                   False
+        Coimbatore        0     235        78        20.7               9.5                    True
+        Chandigarh        0     174       122        32.1              39.9                   False
+            Bhopal        0     165       157        31.7              42.5                   False
+          Shillong        0     106        61        33.3              16.1                    True
+             Kochi        0      38       130        46.3              34.5                    True
+         Ernakulam        0      36       102        65.8              15.4                    True
+
+==============================================================================
+KEY TAKEAWAYS
+==============================================================================
+Best regressor (lowest test RMSE): SVR (RBF)  RMSE=34.96, R2=0.891
+  -> 17.6% lower RMSE than persistence (42.43)
+Best classifier (highest F1): Logistic regression  F1=0.866, Recall=0.860, AUC=0.981  (persistence F1=0.833)
