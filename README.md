@@ -10,7 +10,6 @@ SDG 3 (Good Health and Well-being) and SDG 11 (Sustainable Cities and Communitie
 ## Data
 Kaggle "Air Quality Data in India (2015-2020)", file `city_day.csv`
 (https://www.kaggle.com/datasets/rohanrao/air-quality-data-in-india), compiled from CPCB. Licence: CC0.
-Put the file at `data/city_day.csv`.
 
 ## How to run
 ```
