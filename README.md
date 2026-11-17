@@ -23,7 +23,7 @@ python 04_pca_analysis.py      # PCA figure and table 5
 ```
 All random seeds are 42. Outputs go to `figures/` and `results/`.
 
-## Method (short)
+## Method 
 - Chronological split: train 2015-2018, test Jan 2019 - Feb 2020, lockdown (25 Mar - 30 Jun 2020) held out as a stress test.
 - Preprocessing inside one sklearn Pipeline, fitted on training data only: median imputation, winsorising at 1st/99th percentile, standardisation, one-hot city.
 - Hyper-parameters by GridSearchCV with 5-fold forward-chaining TimeSeriesSplit.
