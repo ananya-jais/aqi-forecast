@@ -35,6 +35,10 @@ NUM_FEATURES = POLLUTANTS + ["AQI", "AQI_lag1", "AQI_3day_mean",
 CAT_FEATURES = ["City"]
 ALERT_THRESHOLD = 200      # "Poor" or worse
 
+# Extra features used ONLY by 09_extension.py (the main models do not use them)
+EXTRA_NUM_FEATURES = ["PM2.5_lag1", "PM10_lag1", "AQI_7day_mean"]
+EXTRA_CAT_FEATURES = ["season"]
+
 
 # ----------------------------------------------------------------------------
 # 1. DATA
@@ -59,6 +63,18 @@ def load_data():
     # 3-day mean AQI (t, t-1, t-2)
     df["AQI_3day_mean"] = g["AQI"].transform(
         lambda s: s.rolling(3, min_periods=1).mean())
+    # --- extra features for the extension experiment (09_extension.py) ---
+    for col in ["PM2.5", "PM10"]:
+        lag = g[col].shift(1)
+        lag[(df["Date"] - df["Date_prev"]).dt.days != 1] = np.nan
+        df[f"{col}_lag1"] = lag
+    df["AQI_7day_mean"] = g["AQI"].transform(
+        lambda s: s.rolling(7, min_periods=1).mean())
+    mon = df["Date"].dt.month
+    df["season"] = np.select(
+        [mon.isin([12, 1, 2]), mon.isin([3, 4, 5]), mon.isin([6, 7, 8, 9])],
+        ["winter", "summer", "monsoon"], default="post-monsoon")
+
     # season as sin / cos
     m = df["Date"].dt.month
     df["month_sin"] = np.sin(2 * np.pi * m / 12)
@@ -107,7 +123,9 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         return np.asarray(input_features, dtype=object)
 
 
-def make_preprocessor(use_pca=False):
+def make_preprocessor(use_pca=False, num_cols=None, cat_cols=None):
+    num_cols = NUM_FEATURES if num_cols is None else num_cols
+    cat_cols = CAT_FEATURES if cat_cols is None else cat_cols
     steps = [("imputer", SimpleImputer(strategy="median")),
              ("winsor", Winsorizer()),
              ("scaler", StandardScaler())]
@@ -115,16 +133,17 @@ def make_preprocessor(use_pca=False):
         steps.append(("pca", PCA(n_components=0.95, random_state=RANDOM_STATE)))
     num_pipe = Pipeline(steps)
     return ColumnTransformer([
-        ("num", num_pipe, NUM_FEATURES),
+        ("num", num_pipe, num_cols),
         ("city", OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-         CAT_FEATURES),
+         cat_cols),
     ])
 
 
-def build_pipeline(model, extra_steps=None, use_pca=False):
+def build_pipeline(model, extra_steps=None, use_pca=False,
+                   num_cols=None, cat_cols=None):
     """Pipeline = preprocessing -> (optional extra steps) -> model.
     The final step is always called 'model' so grids look like model__alpha."""
-    steps = [("prep", make_preprocessor(use_pca))]
+    steps = [("prep", make_preprocessor(use_pca, num_cols, cat_cols))]
     if extra_steps:
         steps += extra_steps
     steps.append(("model", model))

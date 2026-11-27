@@ -92,21 +92,80 @@ RMSE difference (persistence - model)      7.17      5.60       8.68
 ==============================================================================
 TABLE 4: HEALTH-ALERT CLASSIFICATION (test set)
 ==============================================================================
-               Model   Acc  Prec  Recall    F1   AUC
-Persistence baseline 0.922 0.832   0.834 0.833   NaN
- Logistic regression 0.938 0.873   0.860 0.866 0.981
-  Gauss. Naive Bayes 0.865 0.656   0.882 0.752 0.935
-       Decision tree 0.927 0.791   0.931 0.855 0.974
-                k-NN 0.924 0.857   0.807 0.831 0.970
-          Perceptron 0.921 0.855   0.794 0.823 0.966
-           SVM (RBF) 0.938 0.870   0.863 0.866 0.979
-         MLP (64-32) 0.937 0.865   0.865 0.865 0.981
+               Model   Acc  Prec  Recall    F1   AUC  CV_F1  CV_F1_sd
+Persistence baseline 0.922 0.832   0.834 0.833   NaN    NaN       NaN
+ Logistic regression 0.938 0.873   0.860 0.866 0.981  0.884     0.026
+  Gauss. Naive Bayes 0.865 0.656   0.882 0.752 0.935  0.723     0.088
+       Decision tree 0.927 0.791   0.931 0.855 0.974  0.880     0.025
+                k-NN 0.924 0.857   0.807 0.831 0.970  0.851     0.031
+          Perceptron 0.921 0.855   0.794 0.823 0.966  0.830     0.061
+           SVM (RBF) 0.938 0.870   0.863 0.866 0.979  0.875     0.024
+         MLP (64-32) 0.937 0.865   0.865 0.865 0.981  0.880     0.030
 
 ==============================================================================
-CONFUSION MATRIX (best F1 model)
+CONFUSION MATRIX (final classifier, chosen by CV-F1)
 ==============================================================================
               Model   TN  FP  FN   TP
 Logistic regression 6187 243 273 1671
+
+==============================================================================
+TABLE 7: ALERT THRESHOLDS (test set)
+==============================================================================
+                                   threshold  precision  recall    F1  alerts_issued  FP (false alarms)  FN (missed alerts)   TP   TN
+                                         0.2      0.751   0.952 0.840           2463                613                  94 1850 5817
+                                         0.3      0.808   0.928 0.864           2232                428                 140 1804 6002
+                                         0.4      0.845   0.901 0.872           2073                321                 192 1752 6109
+                                         0.5      0.873   0.860 0.866           1914                243                 273 1671 6187
+                                         0.6      0.891   0.822 0.855           1794                196                 346 1598 6234
+                                         0.7      0.918   0.775 0.840           1642                135                 437 1507 6295
+ 0.44 (cost ratio 1:1, chosen on validation)      0.858   0.885 0.871           2006                285                 223 1721 6145
+ 0.38 (cost ratio 2:1, chosen on validation)      0.837   0.906 0.870           2105                343                 182 1762 6087
+ 0.19 (cost ratio 5:1, chosen on validation)      0.745   0.956 0.837           2494                636                  86 1858 5794
+0.13 (cost ratio 10:1, chosen on validation)      0.699   0.973 0.813           2708                816                  52 1892 5614
+
+==============================================================================
+TABLE 8: CALIBRATION BINS (test set)
+==============================================================================
+ mean_predicted_prob  observed_alert_rate    n
+               0.016                0.007 5490
+               0.143                0.138  421
+               0.243                0.199  231
+               0.347                0.327  159
+               0.448                0.509  159
+               0.551                0.608  120
+               0.653                0.599  152
+               0.752                0.698  159
+               0.858                0.855  221
+               0.980                0.956 1262
+
+==============================================================================
+TABLE 9: ERROR BY SEASON
+==============================================================================
+                season    n  mean_AQI_tomorrow  RMSE_model  RMSE_persistence  bias_model  bias_persistence  model_better
+     monsoon (Jun-Sep) 2273              102.6       27.37             27.13        1.66              0.61         False
+post-monsoon (Oct-Nov) 1297              165.8       37.18             46.32        4.03             -1.14          True
+      summer (Mar-May) 1661              149.5       35.09             44.66        1.86             -0.24          True
+      winter (Dec-Feb) 3143              184.8       39.36             48.21        6.56              1.01          True
+
+==============================================================================
+TABLE 10: ERROR BY TODAY'S AQI LEVEL
+==============================================================================
+          level_today    n  mean_AQI_tomorrow  RMSE_model  RMSE_persistence  bias_model  bias_persistence  model_better
+          Good (0-50)  414               50.4       23.20             23.38        0.35             -7.88          True
+Satisfactory (51-100) 2998               81.5       19.74             18.46        2.26             -3.91         False
+   Moderate (101-200) 3012              139.2       33.98             39.64        5.59             -3.16          True
+       Poor (201-300)  964              238.1       50.77             64.50        4.52              8.73          True
+  Very Poor (301-400)  615              327.5       49.49             64.76       -0.99             10.66          True
+     Severe (401-500)  371              436.1       64.63             82.13       13.97             32.92          True
+
+==============================================================================
+TABLE 11: EXTENSION (gradient boosting, extra features)
+==============================================================================
+                                   Variant  CV_RMSE  CV_RMSE_sd  Test_MAE  Test_RMSE  Test_R2                                                 Selected  RMSE_gain_vs_A  gain_CI95_low  gain_CI95_high
+A: Poly+Ridge, base features (final model)   41.755       5.210    24.368     35.258    0.889                                           {'alpha': 100}             NaN            NaN             NaN
+       B: Gradient boosting, base features   40.057       4.846    22.415     35.531    0.887 {'learning_rate': 0.05, 'max_depth': 3, 'max_iter': 100}          -0.274         -1.120           0.568
+          C: Poly+Ridge, extended features   41.971       5.439    23.182     34.049    0.897                                           {'alpha': 100}           1.209          0.940           1.471
+   D: Gradient boosting, extended features   39.153       4.786    21.265     33.632    0.899  {'learning_rate': 0.1, 'max_depth': 3, 'max_iter': 100}           1.625          0.859           2.353
 
 ==============================================================================
 TABLE 5: PCA vs ALL FEATURES
@@ -174,8 +233,38 @@ Thiruvananthapuram      511     407        77        17.9              18.5     
          Ernakulam        0      36       102        36.0              15.4                    True
 
 ==============================================================================
+TABLE A2: CITY DIAGNOSTICS (region, training data, change vs persistence)
+==============================================================================
+              City  n_train  n_test  Mean_AQI  RMSE_model  RMSE_persistence  worse_than_persistence                       region  change_vs_persistence_%      training_data
+         Ernakulam        0      36       102        36.0              15.4                    True         South (Kerala coast)                    133.8 none (unseen city)
+        Coimbatore        0     235        78        19.0               9.5                    True             South (tropical)                    100.0 none (unseen city)
+          Shillong        0     106        61        20.9              16.1                    True           North-East (hills)                     29.8 none (unseen city)
+             Kochi        0      38       130        38.9              34.5                    True         South (Kerala coast)                     12.8 none (unseen city)
+           Kolkata      205     425       152        39.6              35.8                    True                 East (humid)                     10.6 small (1-300 days)
+         Amaravati      313     363        95        24.9              23.8                    True        South-East (tropical)                      4.6 larger (>300 days)
+        Jorapokhar      283     351       159        40.5              41.8                   False East (industrial, Jharkhand)                     -3.1 small (1-300 days)
+Thiruvananthapuram      511     407        77        17.9              18.5                   False         South (Kerala coast)                     -3.2 larger (>300 days)
+         Hyderabad     1320     425        95        13.8              14.6                   False              South (plateau)                     -5.5 larger (>300 days)
+         Bengaluru     1354     425        92        11.7              13.2                   False              South (plateau)                    -11.4 larger (>300 days)
+        Chandigarh        0     174       122        34.5              39.9                   False                        North                    -13.5 none (unseen city)
+            Mumbai      222     425       116        19.8              23.0                   False                   West coast                    -13.9 small (1-300 days)
+            Jaipur      538     425       120        30.1              36.1                   False       North-West (semi-arid)                    -16.6 larger (>300 days)
+           Chennai     1325     425       100        27.6              33.2                   False             South-East coast                    -16.9 larger (>300 days)
+             Patna      872     415       220        36.3              43.8                   False   East (Indo-Gangetic plain)                    -17.1 larger (>300 days)
+      Brajrajnagar      264     352       149        34.1              41.2                   False    East (industrial, Odisha)                    -17.2 small (1-300 days)
+     Visakhapatnam      625     382       122        26.6              32.3                   False             South-East coast                    -17.6 larger (>300 days)
+          Gurugram      856     423       198        44.0              53.7                   False  North (Indo-Gangetic plain)                    -18.1 larger (>300 days)
+           Talcher      229     341       181        38.3              47.1                   False    East (industrial, Odisha)                    -18.7 small (1-300 days)
+            Bhopal        0     165       157        34.1              42.5                   False                      Central                    -19.8 none (unseen city)
+          Amritsar      566     416       110        31.0              39.0                   False  North (Indo-Gangetic plain)                    -20.5 larger (>300 days)
+         Ahmedabad      780     402       403        71.4              90.5                   False             West (semi-arid)                    -21.1 larger (>300 days)
+          Guwahati        0     368       151        52.6              66.8                   False                   North-East                    -21.3 none (unseen city)
+             Delhi     1446     425       238        38.4              51.3                   False  North (Indo-Gangetic plain)                    -25.1 larger (>300 days)
+           Lucknow     1332     425       208        35.3              49.1                   False  North (Indo-Gangetic plain)                    -28.1 larger (>300 days)
+
+==============================================================================
 KEY TAKEAWAYS
 ==============================================================================
 Final regressor (chosen by CV-RMSE): Polynomial (deg 2) + Ridge  test RMSE=35.26, R2=0.889
   -> 16.9% lower RMSE than persistence (42.43)
-Best classifier (highest F1): Logistic regression  F1=0.866, Recall=0.860, AUC=0.981  (persistence F1=0.833)
+Final classifier (chosen by CV-F1): Logistic regression  F1=0.866, Recall=0.860, AUC=0.981  (persistence F1=0.833)

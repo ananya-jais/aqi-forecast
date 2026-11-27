@@ -1,0 +1,7 @@
+level_today,n,mean_AQI_tomorrow,RMSE_model,RMSE_persistence,bias_model,bias_persistence,model_better
+Good (0-50),414,50.4,23.2,23.38,0.35,-7.88,True
+Satisfactory (51-100),2998,81.5,19.74,18.46,2.26,-3.91,False
+Moderate (101-200),3012,139.2,33.98,39.64,5.59,-3.16,True
+Poor (201-300),964,238.1,50.77,64.5,4.52,8.73,True
+Very Poor (301-400),615,327.5,49.49,64.76,-0.99,10.66,True
+Severe (401-500),371,436.1,64.63,82.13,13.97,32.92,True

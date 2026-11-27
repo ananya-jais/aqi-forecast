@@ -15,12 +15,18 @@ SECTIONS = [
     ("TABLE 3b: CV-RMSE MEAN +/- SD ACROSS 5 FOLDS",     "table3_cv_mean_sd.csv"),
     ("TABLE 6: BOOTSTRAP 95% INTERVALS (test set)",      "table6_bootstrap_ci.csv"),
     ("TABLE 4: HEALTH-ALERT CLASSIFICATION (test set)",  "table4_classification.csv"),
-    ("CONFUSION MATRIX (best F1 model)",        "confusion_matrix_best.csv"),
+    ("CONFUSION MATRIX (final classifier, chosen by CV-F1)", "confusion_matrix_best.csv"),
+    ("TABLE 7: ALERT THRESHOLDS (test set)",    "table7_threshold_sweep.csv"),
+    ("TABLE 8: CALIBRATION BINS (test set)",    "table8_calibration_bins.csv"),
+    ("TABLE 9: ERROR BY SEASON",                "table9_error_by_season.csv"),
+    ("TABLE 10: ERROR BY TODAY'S AQI LEVEL",    "table10_error_by_aqi_level.csv"),
+    ("TABLE 11: EXTENSION (gradient boosting, extra features)", "table11_extension.csv"),
     ("TABLE 5: PCA vs ALL FEATURES",            "table5_pca.csv"),
     ("PCA SUMMARY",                             "pca_summary.csv"),
     ("TABLE 5b: COVID LOCKDOWN STRESS TEST",    "table5b_lockdown.csv"),
     ("TOP 8 LASSO COEFFICIENTS",                "lasso_coefficients.csv"),
     ("TABLE A1: PER-CITY RMSE (model vs persistence)",   "tableA1_per_city.csv"),
+    ("TABLE A2: CITY DIAGNOSTICS (region, training data, change vs persistence)", "tableA2_city_diagnostics.csv"),
 ]
 
 lines = []
@@ -46,12 +52,13 @@ try:
     sel = (RES_DIR / "selected_model.txt").read_text().strip()   # chosen by CV
     b = learned[learned.Model == sel].iloc[0]
     c = t4[t4.Model != "Persistence baseline"]
-    cb = c.loc[c.F1.idxmax()]
+    selc = (RES_DIR / "selected_classifier.txt").read_text().strip()   # chosen by CV-F1
+    cb = c[c.Model == selc].iloc[0]
     cbase = t4.loc[t4.Model == "Persistence baseline", "F1"].iloc[0]
     lines += ["", "=" * 78, "KEY TAKEAWAYS", "=" * 78,
               f"Final regressor (chosen by CV-RMSE): {b.Model}  test RMSE={b.RMSE:.2f}, R2={b.R2:.3f}",
               f"  -> {100 * (1 - b.RMSE / base):.1f}% lower RMSE than persistence ({base:.2f})",
-              f"Best classifier (highest F1): {cb.Model}  F1={cb.F1:.3f}, "
+              f"Final classifier (chosen by CV-F1): {cb.Model}  F1={cb.F1:.3f}, "
               f"Recall={cb.Recall:.3f}, AUC={cb.AUC:.3f}  (persistence F1={cbase:.3f})"]
 except Exception as e:
     lines.append(f"(could not build takeaways: {e})")

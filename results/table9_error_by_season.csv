@@ -1,0 +1,5 @@
+season,n,mean_AQI_tomorrow,RMSE_model,RMSE_persistence,bias_model,bias_persistence,model_better
+monsoon (Jun-Sep),2273,102.6,27.37,27.13,1.66,0.61,False
+post-monsoon (Oct-Nov),1297,165.8,37.18,46.32,4.03,-1.14,True
+summer (Mar-May),1661,149.5,35.09,44.66,1.86,-0.24,True
+winter (Dec-Feb),3143,184.8,39.36,48.21,6.56,1.01,True

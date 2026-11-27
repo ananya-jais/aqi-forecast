@@ -1,0 +1,5 @@
+Variant,CV_RMSE,CV_RMSE_sd,Test_MAE,Test_RMSE,Test_R2,Selected,RMSE_gain_vs_A,gain_CI95_low,gain_CI95_high
+"A: Poly+Ridge, base features (final model)",41.755,5.21,24.368,35.258,0.889,{'alpha': 100},,,
+"B: Gradient boosting, base features",40.057,4.846,22.415,35.531,0.887,"{'learning_rate': 0.05, 'max_depth': 3, 'max_iter': 100}",-0.274,-1.12,0.568
+"C: Poly+Ridge, extended features",41.971,5.439,23.182,34.049,0.897,{'alpha': 100},1.209,0.94,1.471
+"D: Gradient boosting, extended features",39.153,4.786,21.265,33.632,0.899,"{'learning_rate': 0.1, 'max_depth': 3, 'max_iter': 100}",1.625,0.859,2.353

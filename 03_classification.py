@@ -6,7 +6,8 @@ Baseline: persistence (alert tomorrow if AQI today > 200)
 Creates:
   results/table2_best_params_classification.csv
   results/table4_classification.csv
-  results/confusion_matrix_best.csv
+  results/confusion_matrix_best.csv   (final classifier, chosen by CV-F1)
+  results/selected_classifier.txt
   figures/fig7_roc_curves.png
 Run:  python 03_classification.py
 """
@@ -83,7 +84,8 @@ def main():
 
     # persistence baseline
     base_pred = (test["AQI"] > ALERT_THRESHOLD).astype(int)
-    rows.append({"Model": "Persistence baseline", **class_metrics(y_te, base_pred)})
+    rows.append({"Model": "Persistence baseline", **class_metrics(y_te, base_pred),
+                 "CV_F1": np.nan, "CV_F1_sd": np.nan})
 
     fitted = {}
     for name, (pipe, grid) in models.items():
@@ -95,12 +97,15 @@ def main():
         scores[name] = sc
         fitted[name] = gs.best_estimator_
         m = class_metrics(y_te, pred, sc)
-        rows.append({"Model": name, **m})
+        cv_sd = gs.cv_results_["std_test_score"][gs.best_index_]   # sd across 5 folds
+        rows.append({"Model": name, **m,
+                     "CV_F1": gs.best_score_, "CV_F1_sd": cv_sd})
         params_rows.append({"Model": name,
                             "Selected": {k.replace("model__", ""): v
                                          for k, v in gs.best_params_.items()}})
         print(f"{name:22s} F1={m['F1']:.3f}  Recall={m['Recall']:.3f}  "
-              f"AUC={m['AUC']:.3f}  ({time.time() - t0:.0f}s)")
+              f"AUC={m['AUC']:.3f}  CV-F1={gs.best_score_:.3f} +/- {cv_sd:.3f}  "
+              f"({time.time() - t0:.0f}s)")
 
     table4 = pd.DataFrame(rows).round(3)
     table4.to_csv(RES_DIR / "table4_classification.csv", index=False)
@@ -123,15 +128,20 @@ def main():
     plt.savefig(FIG_DIR / "fig7_roc_curves.png", dpi=200)
     plt.close()
 
-    # ---- confusion matrix of best-F1 model ---------------------------------
+    # ---- final classifier: chosen by CV-F1 (NOT by test F1) ----------------
     learned = table4[table4["Model"] != "Persistence baseline"]
-    best_name = learned.loc[learned["F1"].idxmax(), "Model"]
+    best_cv_name = learned.loc[learned["CV_F1"].idxmax(), "Model"]
+    best_test_name = learned.loc[learned["F1"].idxmax(), "Model"]
+    print(f"\nBest by CV-F1  : {best_cv_name}")
+    print(f"Best by test F1: {best_test_name}")
+    best_name = best_cv_name
+    (RES_DIR / "selected_classifier.txt").write_text(best_name)
     pred = fitted[best_name].predict(X_te)
     tn, fp, fn, tp = confusion_matrix(y_te, pred).ravel()
     cm = pd.DataFrame({"TN": [tn], "FP": [fp], "FN": [fn], "TP": [tp]})
     cm.insert(0, "Model", best_name)
     cm.to_csv(RES_DIR / "confusion_matrix_best.csv", index=False)
-    print(f"\nBest F1 model: {best_name}")
+    print(f"\nFinal classifier (chosen by CV-F1): {best_name}")
     print(cm.to_string(index=False))
     print(f"Missed alerts (FN) = {fn} of {fn + tp} real alert days "
           f"({fn / (fn + tp):.1%})")
