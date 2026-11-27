@@ -1,9 +1,7 @@
 # Next-Day AQI Forecasting and Health-Alert Classification for Indian Cities
 
-ML course assignment 
-B.Sc. (H) Computer Science,
-Sem V,
-University of Delhi.
+ML course assignment
+B.Sc. (H) Computer Science, Sem V, University of Delhi.
 SDG 3 (Good Health and Well-being) and SDG 11 (Sustainable Cities and Communities).
 
 ## Project Overview
@@ -23,6 +21,7 @@ The Air Quality Index (AQI) is normally published only after the day has passed,
 - Forward-chaining CV (TimeSeriesSplit): cross-validation where each fold trains on the past and validates on the next period.
 - Winsorising: clipping extreme values at the 1st and 99th percentiles instead of deleting them.
 - Recall: share of real alert days that the model caught. It matters most here because a missed alert costs more than a false alarm.
+- Block bootstrap: resampling whole calendar weeks to get confidence intervals that respect correlation between neighbouring days.
 
 ## Data
 
@@ -43,6 +42,7 @@ python 01_eda.py               # figures 1-3, missing-value table
 python 02_regression.py        # 8 regressors, tables 2-3, lockdown, per-city (a few minutes)
 python 03_classification.py    # 7 classifiers, table 4, ROC curves
 python 04_pca_analysis.py      # PCA figure and table 5
+python 06_uncertainty.py       # CV mean +/- sd and bootstrap confidence intervals
 python 05_summary.py           # prints all results in one summary
 ```
 
@@ -53,14 +53,16 @@ All random seeds are 42. Outputs go to figures/ and results/.
 - Chronological split: train 2015-2018, test Jan 2019 - Feb 2020, lockdown (25 Mar - 30 Jun 2020) held out as a stress test.
 - Preprocessing inside one sklearn Pipeline, fitted on training data only: median imputation, winsorising at 1st/99th percentile, standardisation, one-hot city.
 - Hyper-parameters by GridSearchCV with 5-fold forward-chaining TimeSeriesSplit.
+- The final regressor is selected by cross-validation only; the test set is used once, for reporting.
 - Baseline: persistence (tomorrow = today).
 - Features: 11 pollutant concentrations, today's AQI, yesterday's AQI, 3-day mean AQI, month (sin/cos) and city. Xylene was dropped (61.3% missing).
+- Uncertainty: CV-RMSE mean +/- sd across folds, and 95% block-bootstrap intervals (resampling calendar weeks) for the test RMSE.
 
 ## Folder structure
 
 ```
 utils.py              shared data loading, split, pipeline
-01_eda.py ... 05_summary.py
+01_eda.py ... 06_uncertainty.py
 data/                 city_day.csv
 figures/              all plots used in the report
 results/              all tables (CSV)
@@ -72,15 +74,26 @@ All results are on the held-out test set (1 Jan 2019 - 29 Feb 2020). Training: 2
 
 ### Next-day AQI regression
 
-| Model | MAE | RMSE | R2 |
-|---|---|---|---|
-| Persistence baseline | 25.59 | 42.43 | 0.839 |
-| Linear regression (OLS) | 24.55 | 36.90 | 0.879 |
-| Lasso | 24.39 | 37.75 | 0.873 |
-| Decision tree | 23.33 | 36.39 | 0.882 |
-| SVR (RBF) | 23.69 | 34.96 | 0.891 |
+| Model | MAE | RMSE | R2 | CV-RMSE (mean +/- sd) |
+|---|---|---|---|---|
+| Persistence baseline | 25.59 | 42.43 | 0.839 | - |
+| Linear regression (OLS) | 24.55 | 36.90 | 0.879 | 43.04 +/- 6.13 |
+| Lasso | 24.39 | 37.75 | 0.873 | 42.26 +/- 4.62 |
+| Decision tree | 23.33 | 36.39 | 0.882 | 44.15 +/- 3.97 |
+| SVR (RBF) | 23.69 | 34.96 | 0.891 | 44.40 +/- 5.05 |
+| **Polynomial (deg 2) + Ridge (final, chosen by CV)** | 24.37 | 35.26 | 0.889 | 41.76 +/- 5.21 |
 
-SVR gave the lowest test RMSE, 17.6% below persistence. The strongest lasso predictors were today's AQI, PM2.5, the 3-day mean AQI and CO.
+The final model was chosen by lowest CV-RMSE (Polynomial + Ridge). On the test set, used once, it reaches RMSE 35.26, which is 16.9% below persistence. SVR has a slightly lower test RMSE (34.96) but was not selected because it ranked worse in CV. The fold sd (about 4 to 6) is larger than the CV gaps between the top models, so those models should be treated as roughly equivalent. The strongest lasso predictors were today's AQI, PM2.5, the 3-day mean AQI and CO.
+
+### Uncertainty (95% block-bootstrap intervals, test set)
+
+| Quantity | Estimate | 95% interval |
+|---|---|---|
+| RMSE, final model | 35.26 | 33.45 - 36.99 |
+| RMSE, persistence | 42.43 | 39.46 - 45.34 |
+| RMSE reduction vs persistence | 16.9% | 14.0% - 19.4% |
+
+The improvement over persistence is clearly above zero. These intervals reflect test-sample variability only, not uncertainty from training or model selection.
 
 ### Health alert classification (next-day AQI > 200)
 
@@ -96,8 +109,8 @@ Logistic regression and SVM tied for the best F1. The decision tree had the high
 
 ### Robustness checks
 
-- COVID lockdown: SVR RMSE 25.18 vs persistence 21.11, so the model was worse than persistence when emissions changed suddenly (distribution shift).
-- Per-city: SVR beat persistence in 20 of 25 cities. It was worse in Kolkata, Coimbatore, Shillong, Kochi and Ernakulam, mostly cities with little or no training data.
+- COVID lockdown: final model RMSE 23.66 vs persistence 21.11, so the model was worse than persistence when emissions changed suddenly (distribution shift).
+- Per-city: the final model beat persistence in 19 of 25 cities. It was worse in Kolkata, Amaravati, Coimbatore, Shillong, Kochi and Ernakulam, mostly cities with little or no training data.
 - PCA (95% variance) did not improve results (OLS RMSE 36.90 -> 40.07).
 
 ## Visualizations
@@ -105,7 +118,7 @@ Logistic regression and SVM tied for the best F1. The decision tree had the high
 ### Mean AQI by month (winter is the worst season)
 ![Monthly AQI](figures/fig2_monthly_aqi.png)
 
-### Observed vs predicted next-day AQI (SVR)
+### Observed vs predicted next-day AQI (final model)
 ![Observed vs predicted](figures/fig6_observed_vs_predicted.png)
 
 ### ROC curves of the classifiers
@@ -113,16 +126,16 @@ Logistic regression and SVM tied for the best F1. The decision tree had the high
 
 ## Key Findings
 
-- Simple models are enough: even linear regression beats the persistence baseline, and SVR is only slightly better.
+- Simple models are enough: linear regression is within about 5% of the best test RMSE, and every learned model beats the persistence baseline.
 - Today's AQI and particulate matter (PM2.5, PM10) carry most of the information.
-- Models need monitoring: they fail when conditions change suddenly (lockdown) or for cities with no training data.
+- Models need monitoring: they fail when conditions change suddenly (lockdown) or for cities with little or no training data.
 
 ## Limitations
 
 - No weather data (wind, temperature, humidity), which affects day-to-day pollution.
 - City-level averages hide differences between monitoring stations.
 - Data ends in July 2020.
-- The final regression model was picked on test RMSE; cross-validation preferred a different model (Polynomial + Ridge), so differences between the better models are small.
+- Cross-validation cannot clearly separate the top regressors (differences are within one fold sd), and the bootstrap intervals cover test-sample variability only.
 
 ## Future Improvements
 

@@ -1,0 +1,1 @@
+Polynomial (deg 2) + Ridge

@@ -9,6 +9,7 @@ Creates:
   results/lasso_coefficients.csv
   results/table5b_lockdown.csv
   results/tableA1_per_city.csv
+  results/selected_model.txt, results/test_predictions.csv
   figures/fig6_observed_vs_predicted.png
   models/best_regressor.joblib
 Run:  python 02_regression.py     (takes a few minutes: SVR/MLP are slow)
@@ -76,7 +77,8 @@ def main():
 
     # ---- persistence baseline ---------------------------------------------
     m = reg_metrics(y_te, test["AQI"])
-    rows.append({"Model": "Persistence baseline", **m, "CV_RMSE": np.nan})
+    rows.append({"Model": "Persistence baseline", **m,
+                 "CV_RMSE": np.nan, "CV_RMSE_sd": np.nan})
 
     for name, (pipe, grid) in models.items():
         t0 = time.time()
@@ -85,13 +87,15 @@ def main():
         gs.fit(X_tr, y_tr)
         pred = gs.predict(X_te)
         m = reg_metrics(y_te, pred)
-        rows.append({"Model": name, **m, "CV_RMSE": -gs.best_score_})
+        cv_sd = gs.cv_results_["std_test_score"][gs.best_index_]   # sd across the 5 folds
+        rows.append({"Model": name, **m,
+                     "CV_RMSE": -gs.best_score_, "CV_RMSE_sd": cv_sd})
         params_rows.append({"Model": name,
                             "Selected": {k.replace("model__", ""): v
                                          for k, v in gs.best_params_.items()}})
         fitted[name] = gs.best_estimator_
         print(f"{name:30s} RMSE={m['RMSE']:.2f}  R2={m['R2']:.3f}  "
-              f"CV-RMSE={-gs.best_score_:.2f}  ({time.time() - t0:.0f}s)")
+              f"CV-RMSE={-gs.best_score_:.2f} +/- {cv_sd:.2f}  ({time.time() - t0:.0f}s)")
 
     table3 = pd.DataFrame(rows).round(3)
     table3.to_csv(RES_DIR / "table3_regression.csv", index=False)
@@ -105,8 +109,9 @@ def main():
     best_test_name = learned.loc[learned["RMSE"].idxmin(), "Model"]
     print(f"\nBest by CV-RMSE : {best_cv_name}")
     print(f"Best by test RMSE: {best_test_name}")
-    best_name = best_test_name        # same as the sample paper; change to
-    best = fitted[best_name]          # best_cv_name if you prefer
+    best_name = best_cv_name          # FINAL MODEL IS CHOSEN BY CV ONLY.
+    best = fitted[best_name]          # The test set is used once, for reporting.
+    (RES_DIR / "selected_model.txt").write_text(best_name)
     joblib.dump(best, MODEL_DIR / "best_regressor.joblib")
     persist_rmse = table3.loc[table3["Model"] == "Persistence baseline", "RMSE"].iloc[0]
     best_rmse = table3.loc[table3["Model"] == best_name, "RMSE"].iloc[0]
@@ -115,6 +120,10 @@ def main():
 
     # ---- Fig 6 : observed vs predicted ------------------------------------
     pred = best.predict(X_te)
+    pd.DataFrame({"City": test["City"], "Date": test["Date"],
+                  "AQI_today": test["AQI"], "AQI_next": y_te,
+                  "pred_model": pred}).to_csv(RES_DIR / "test_predictions.csv",
+                                              index=False)
     plt.figure(figsize=(5.5, 5.5))
     plt.scatter(y_te, pred, s=4, alpha=0.3)
     plt.plot([0, 500], [0, 500], color="orange")

@@ -1,0 +1,5 @@
+Quantity,Estimate,CI95_low,CI95_high
+RMSE: Polynomial (deg 2) + Ridge,35.26,33.45,36.99
+RMSE: persistence,42.43,39.46,45.34
+RMSE difference (persistence - model),7.17,5.6,8.68
+RMSE reduction vs persistence (%),16.9,14.02,19.38
